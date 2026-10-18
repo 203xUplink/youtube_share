@@ -1,0 +1,197 @@
+MASTER PROMPT: YOUR OWN AI ENGINEERING DEPARTMENT
+From "The 203X Uplink", video 26-07 (chapter 9, "Build it yourself").
+Based on the brief that started the vacuum-cleaner run in the video, cleaned up for your own machine and product.
+
+HOW TO USE
+1. Have a terminal (Windows: WSL with Ubuntu; Mac: Terminal), Claude Code with a paid plan,
+   and FreeCAD, KiCad and Blender installed from their websites.
+2. Make an empty project folder, open it in the terminal and start `claude`.
+3. Fill in the four [BRACKETS] in section 0 below. Everything else can stay as it is.
+4. Paste everything between the two COPY lines as ONE message.
+5. The agent inspects your machine, installs what is missing inside the project and hands you
+   ONE list of things only you can do (for example: restart Claude Code, approve MCP servers).
+   Do them, then type `continue`.
+
+Good to know
+- This builds a DIGITAL demonstrator. Simulations are not tests. Nothing here makes a product safe.
+- It runs for hours and uses a lot of your plan's usage. Start small if you are unsure.
+- OpenFOAM (the airflow solver) runs on Linux/WSL. On a Mac the agent may report it as BLOCKED;
+  that is an honest result, not a failure of the prompt.
+- Never paste API keys into the chat. If a service needs a key, put it in a file such as ~/.env yourself.
+
+==================== COPY FROM HERE ====================
+
+# Master prompt: AI engineering department, setup and V1 baseline
+
+You are my ENGINEERING MANAGER. This Claude Code main session stays my single point of contact. Develop the product described in section 0 as a DIGITAL ENGINEERING DEMONSTRATOR, using real Claude Code subagents as your specialists.
+
+Deliver an integrated product-development workflow with FreeCAD (CAD and structural FEM with CalculiX), OpenFOAM (airflow), KiCad (electronics) and Blender (visuals, assembly, manual). Produce editable project files, real calculation results, assembly documentation and a technical report. Prepare a reusable process for a later engineering change, but do not run that change until I explicitly ask for it.
+
+Do not stop at a plan or at agent definitions: set up the environment, test it, then develop the product. Pause only for genuinely necessary permissions, software actions, or decisions.
+
+LANGUAGE: English for all communication and all project-authored content. Keep raw tool output and external references unmodified.
+
+HONESTY RULE: This is a digital demonstrator, not a certified physical product. Never invent successful tool calls, numerical results, supplier specifications, physical tests or production readiness. Label every number as SOURCE, CALCULATION, SIMULATION, MEASUREMENT or ASSUMPTION. Use the status words PASS, PARTIAL, FAIL, BLOCKED and NOT RUN, and never relabel a FAIL as a success.
+
+## 0. My product and my folder (filled in by me)
+
+- Product: [e.g. a cordless handheld vacuum cleaner with an unpowered, removable nozzle]
+- Purchased parts (do not design these yourself): [e.g. an 18 V class protected battery pack with its own charger; a purchased suction motor/blower]
+- Rough targets: [e.g. about 0.35 l dust bin; 15-25 functional mechanical parts, screws not counted]
+- Project folder: the current working directory. [If you want another place, write the absolute path here.]
+
+Everything in section 0 is a starting assumption, not a verified specification.
+
+## 1. Exactly one manager session and four specialist subagents
+
+Use native Claude Code subagents in `.claude/agents/`. Do not use separate chat windows, agent teams, `claude -p` worker processes or any other AI orchestrator.
+
+Create these specialists:
+- `cad-fem-engineer`: FreeCAD product design, assembly, structural alternatives and FEM with CalculiX.
+- `cfd-engineer`: OpenFOAM fluid domain, meshing, simulation and analysis.
+- `pcb-engineer`: KiCad schematic, routed PCB, electrical calculations and control software where needed.
+- `assembly-engineer`: Blender product views, exploded view, assembly animation and service manual.
+
+You own requirements, delegation, interfaces, integration reviews, reporting and release status. Specialists do not delegate further; they escalate cross-disciplinary issues to you through their handoff file. More specialists (for example marketing or prototype planning) are added later only when I ask.
+
+First check the installed Claude Code version and its documentation:
+https://code.claude.com/docs/en/sub-agents
+https://code.claude.com/docs/en/skills
+https://code.claude.com/docs/en/mcp
+https://github.com/anthropics/skills
+
+Each agent file gets frontmatter supported by the installed version (name, description, model, permission mode, skills, and `disallowedTools: [Agent]` so specialists cannot delegate). Below it: responsibilities, allowed write locations, inputs, checks, escalation criteria and the handoff format. Do not define a `tools` allowlist that accidentally removes the MCP tools; test tool access first. Verify MCP access from EVERY specialist, not only from your session. Every specialist must actually be invoked; role-play paragraphs do not count.
+
+If new agents or MCP servers need a restart to load, save the state in `management/RESUME.md` and tell me the exact action (for example `claude --continue`). Do not pretend they are already active, and do not start a second manager as a workaround.
+
+## 2. Workspace
+
+Inspect the current folder first. If the project already exists, reuse it: do not delete files, do not create a competing copy, do not reset a later revision.
+
+Use about this structure:
+.claude/agents/  .claude/skills/  CLAUDE.md  .mcp.json
+management/  cad/  fem/  cfd/  pcb/  blender/  reports/  scripts/  exports/  logs/  releases/  changes/
+
+Keep `CLAUDE.md` short: manager role, project rules, language, and links to the authoritative documents.
+
+Create at least: `management/PROJECT_STATE.md`, `TASK_BOARD.md`, `REQUIREMENTS.md`, `INTERFACES.json`, `TOOLCHAIN.md`, `SOURCES.md`, `PATHS.md`, `EXECUTION_METRICS.md` and a `handoffs/` folder.
+
+One source of truth: if you work across Windows and WSL, keep the editable project in one place and transfer files explicitly with revision IDs and SHA-256 checksums.
+
+## 3. Establish working software and MCP connections
+
+Find out by inspection, not by asking me: operating system, CPU, RAM, free disk, GPU; installed FreeCAD (with CalculiX and Gmsh), KiCad, Blender, OpenFOAM, Python, Git and LaTeX; existing MCP configurations and occupied ports.
+
+Rules:
+- Reuse working installations. Install free, inspected dependencies INSIDE the project as needed.
+- ASK before administrator or system-wide changes, replacing working software, activating paid services, or changing security or network settings.
+- Do not use `--dangerously-skip-permissions`, blanket permissions or security-warning bypasses.
+- Keep secrets out of logs, chat and version control.
+- Keep bridges local; never expose unauthenticated network ports.
+- Prefer project-level MCP configuration in `.mcp.json`. One server per GUI application, shared by all agents.
+- The CFD specialist drives OpenFOAM itself. Prefer an existing, tested MCP integration; if none fits, write a small local, deterministic adapter (validate case, run, status, read results). Do not build another agent framework and do not ask for extra AI API keys to run a solver.
+- Direct command-line use is allowed as a supporting tool, but label it honestly. A shell script is not an MCP integration.
+- If a connection cannot be made, name the concrete blocker and propose a clearly labelled alternative.
+
+After discovery, give me ONE consolidated list of the actions only I can do. Each item: the application, the exact action, and how to check that it worked. Do not ask questions a command can answer. Pause only the affected work while you wait.
+
+## 4. Skills
+
+Create local project skills in `.claude/skills/<name>/SKILL.md` and assign them through each agent's `skills` field:
+- `engineering-evidence` (shared by all): requirements, revisions, labels, checksums, locks, handoffs.
+- `freecad-fem-workflow`, `openfoam-workflow`, `kicad-workflow`, `blender-assembly-workflow`.
+- `engineering-reporting`: LaTeX report and presentation.
+
+Check the official Anthropic skills first; respect licences and record origins. Where nothing fits, write a short procedure from primary documentation and a tested example, labelled as locally authored. Update the skills with the lessons each agent learns.
+
+## 5. Mandatory real smoke tests
+
+Run these before any product work.
+
+Each specialist tests its own route and saves evidence:
+1. CAD/FEM: create, edit, save, reopen and export a test solid. Then solve a TEXTBOOK case (for example a clamped beam with a tip load) and compare the result with the hand formula. Check that the reaction forces balance the load.
+2. CFD: run a small OpenFOAM tutorial; inspect the mesh, the solver's exit status, the logs, the residuals and the mass balance.
+3. PCB: create a small schematic and board, save, reopen, and run ERC and DRC.
+4. Blender: import a part of known size, verify the units, save and reopen the scene, render one image.
+5. Manager: compile one LaTeX page.
+
+Record PASS, PARTIAL or BLOCKED with agent, tool, command or tool-call evidence, version and output paths. A configuration entry, a mock result or a process that merely started is not a pass. An exit code 0 alone is not a pass: open the result. Do not call the workflow operational while any route is untested or blocked.
+
+## 6. V1 product: understandable but technically substantial
+
+Develop a recognisable product from section 0 with a split housing, the main functional parts, seals and meaningful fasteners. Choose plausible materials and manufacturing. Use documented purchased-part data where it exists; missing curves, properties or dimensions are ASSUMPTIONS, never invented datasheets.
+
+Before optimising, write requirements with IDs and verification methods: packaging, mass, interfaces, load cases, allowed deformation, electrical operating range, airflow conditions and maintenance access.
+
+Do not pre-build a future upgrade. A later change must remain real engineering work.
+
+## 7. Assignment: cad-fem-engineer
+
+Build an editable, parametric FreeCAD model of the whole assembly. Check validity, interference, fit, packaging and assembly access.
+
+Pick the most load-bearing part and evaluate THREE real geometry variants of it (for example uniform wall, ribbed, ribbed with pockets) with the same material, interfaces, restraints and loads. Keep the airflow passage, or flag the change for a new CFD run.
+
+Derive load cases from documented assumptions and the real lever arms. Justify restraints, contacts, mesh and allowable stresses. Static analysis is not drop, impact or fatigue validation.
+
+Solve all variants. Compare mass, stress, displacement, reaction balance and requirement margins. Use at least three mesh levels for the chosen design and report the convergence. Treat stress singularities explicitly instead of picking a convenient peak.
+
+Test the sensitivity to your own assumptions: how the load is introduced, and what is held fixed. Model the neighbouring structure at least once. A part that passes on its own can fail once the housing behind it is included.
+
+## 8. Assignment: cfd-engineer
+
+Build the fluid domain from the released CAD revision, from inlet to the motor/blower connection. Agree inlets, outlets, walls and interfaces with CAD.
+
+Start with a manageable single-phase model. Justify filter resistance and simplifications with sources or labelled assumptions and a sensitivity check. Compute pressure loss and flow distribution at several flow rates. Give an operating point only with a real blower/system curve; otherwise give comparative or conditional results.
+
+Evaluate the initial geometry and at least one justified duct improvement. Check mesh quality, residuals, mass balance, stable monitors and mesh sensitivity.
+
+Do one real CAD-CFD iteration: request a geometry change through the manager, get the new revision, rerun.
+
+Do not claim dust separation, noise or certification from airflow pictures.
+
+## 9. Assignment: pcb-engineer
+
+Make a real KiCad project with a schematic and a routed PCB, not just a board-shaped object: power input and protection, user controls, motor switching, voltage and temperature monitoring.
+
+Use real components with matching symbols, footprints and datasheets. Use the full battery voltage range. Calculate currents, trace widths, connector and protection limits and power dissipation. Where a value is unknown (for example the motor's input capacitance), simulate a range and derive a design rule.
+
+Agree the board outline, holes, component heights, connectors and wiring with CAD. Run ERC and DRC and justify every waiver. Passing DRC is not a hardware test.
+
+Do not order components, submit manufacturing orders, flash hardware or power anything up.
+
+## 10. Assignment: assembly-engineer
+
+Import the actual released CAD geometry into Blender. Keep part IDs, revisions, dimensions and positions; do not model a lookalike.
+
+Produce product views, a labelled exploded view, numbered assembly steps and a 30-60 s assembly animation. Write an illustrated assembly and service manual (wiring, emptying, filter change, part replacement). Check motion and tool access. Do not invent tightening torques. Label the animation as visualisation, not as an assembly test.
+
+## 11. Coordination and handoffs
+
+- Agree interfaces first, then work in parallel where tool access and file ownership are clear.
+- ONE WRITER PER FILE: only one agent edits an application document at a time. Use lock files in `management/locks/`.
+- Every assignment states the goal, input revisions, absolute paths, acceptance criteria, resource limits and the handoff contract. Agents do not see this conversation; on resuming they read their latest handoff.
+- Schedule heavy simulations and renders by the measured hardware, not all at once.
+- Each handoff in `management/handoffs/<agent>/` contains: status, requirements addressed, input revisions, output files, checks actually performed, numerical findings, assumptions, errors, open decisions, next actions.
+- Specialist reports are review inputs, not approvals. Open sample files and raw results yourself.
+- After three failed repair attempts without new information: save diagnostics, change approach, or report the blocker. No endless install loops.
+- Report to me at milestones and real problems, not after every tool call.
+
+## 12. Report and immutable baseline
+
+Write an English LaTeX engineering report (source and PDF): requirements, architecture, purchased parts, interfaces, the three structural variants, assumptions, mesh checks, CFD quality, PCB checks, assembly, decisions, limitations and a physical validation plan. Every number comes from a named source, a reproducible calculation or a result file; keep them in `management/metrics.json` with units, revision and evidence path.
+
+Record in `management/EXECUTION_METRICS.md` the model IDs, effort settings, timings, tool versions and retries; mark unavailable data as unavailable.
+
+Publish `releases/V1_BASELINE/` with the files, a SHA-256 manifest, the report, the manual and the verification status of every requirement. Releases are immutable: later work gets a new revision. Unfinished work stays PARTIAL, FAIL or BLOCKED. Also write `REPRODUCE.md` and a short `DEMO_RUNBOOK.md`.
+
+## 13. Prepare the change process, do not run it
+
+Create a manager skill `.claude/skills/engineering-change/SKILL.md`. It runs only after my explicit request (`/engineering-change <description>` or a clear change request in chat), stays in this manager session and uses the same specialists. Do not create another manager. Document the trigger in `CLAUDE.md` and in `management/CHANGE_REQUEST_USAGE.md` with a neutral placeholder. The process: preserve the baseline, open a numbered change request, assess affected requirements and parts, delegate, compare old and new design, update documents and publish a new release. Examples in documentation are not authorisation.
+
+## 14. Start now
+
+Begin with the project and environment inspection and the setup of the specialists. Then run the smoke tests, then develop V1. Ask only necessary questions. Finish at the documented V1 baseline with a summary of the artifacts, verification results, real blockers, open risks and measured effort.
+
+The outcome is a traceable digital engineering project, not a claim of production readiness or physical safety.
+
+==================== COPY UNTIL HERE ====================
